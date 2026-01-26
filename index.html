@@ -63,3 +63,117 @@ td, th { border: 1px solid #ccc; padding: 6px 12px; }
 <!-- นักเรียน -->
 <div class="footer" id="studentSection">
   <h3>เช็กชื่อเข้าเรียน</h3>
+  <input id="studentName" placeholder="ชื่อนักเรียน">
+  <button id="checkBtn">เช็กชื่อ</button>
+</div>
+
+<!-- ครู -->
+<div class="footer" id="teacherTable">
+  <h3>รายชื่อผู้เข้าเรียน</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ชื่อ</th>
+        <th>เวลา</th>
+      </tr>
+    </thead>
+    <tbody id="log"></tbody>
+  </table>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, push, onValue }
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+/* Firebase */
+const firebaseConfig = {
+  apiKey: "ใส่_API_KEY",
+  authDomain: "qr-checkin-f6467.firebaseapp.com",
+  databaseURL: "https://qr-checkin-f6467-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "qr-checkin-f6467",
+  storageBucket: "qr-checkin-f6467.appspot.com",
+  messagingSenderId: "ใส่_MESSAGING_ID",
+  appId: "ใส่_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* DOM */
+const title = document.getElementById("title");
+const startBtn = document.getElementById("startBtn");
+const statusEl = document.getElementById("status");
+const countEl = document.getElementById("count");
+const studentSection = document.getElementById("studentSection");
+const teacherTable = document.getElementById("teacherTable");
+const qrSection = document.getElementById("qrSection");
+const qrcodeEl = document.getElementById("qrcode");
+const logEl = document.getElementById("log");
+const studentName = document.getElementById("studentName");
+const checkBtn = document.getElementById("checkBtn");
+
+/* Mode */
+const isStudent = location.hash === "#student";
+
+/* Firebase path */
+const today = new Date().toISOString().slice(0,10);
+const attendanceRef = ref(db, "attendance/" + today);
+
+/* UI mode */
+if (isStudent) {
+  title.innerText = "📱 นักเรียนเช็กชื่อ";
+  startBtn.style.display = "none";
+  qrSection.style.display = "none";
+  teacherTable.style.display = "none";
+} else {
+  title.innerText = "👨‍🏫 หน้าจอครู";
+  studentSection.style.display = "none";
+}
+
+/* เริ่มคาบ */
+startBtn.onclick = () => {
+  statusEl.innerHTML = "<b class='green'>เริ่มคาบเรียนแล้ว</b>";
+  qrcodeEl.innerHTML = "";
+  new QRCode(qrcodeEl, {
+    text: location.origin + location.pathname + "#student",
+    width: 220,
+    height: 220
+  });
+};
+
+/* นักเรียนเช็กชื่อ */
+checkBtn.onclick = () => {
+  const name = studentName.value.trim();
+  if (!name) return alert("กรุณาใส่ชื่อ");
+
+  push(attendanceRef, {
+    name,
+    time: new Date().toLocaleTimeString()
+  });
+
+  studentName.value = "";
+  alert("เช็กชื่อสำเร็จ");
+};
+
+/* Realtime ครู */
+onValue(attendanceRef, snap => {
+  logEl.innerHTML = "";
+  let count = 0;
+
+  snap.forEach(c => {
+    const d = c.val();
+    count++;
+    logEl.innerHTML += `
+      <tr>
+        <td>${d.name}</td>
+        <td>${d.time}</td>
+      </tr>`;
+  });
+
+  countEl.innerText = "👥 เข้าเรียนแล้ว: " + count + " คน";
+});
+</script>
+
+</body>
+</html>
