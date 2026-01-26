@@ -42,7 +42,7 @@ body {
   background: #fff;
 }
 table { margin: auto; border-collapse: collapse; }
-td, th { border: 1px solid #ccc; padding: 5px 10px; }
+td, th { border: 1px solid #ccc; padding: 6px 12px; }
 .green { color: green; }
 </style>
 </head>
@@ -60,21 +60,20 @@ td, th { border: 1px solid #ccc; padding: 5px 10px; }
   <div id="qrcode"></div>
 </div>
 
-<!-- ===== หน้าเช็กชื่อ (นักเรียนเท่านั้น) ===== -->
+<!-- นักเรียน -->
 <div class="footer" id="studentSection">
   <h3>เช็กชื่อเข้าเรียน</h3>
   <input id="studentName" placeholder="ชื่อนักเรียน">
   <button id="checkBtn">เช็กชื่อ</button>
 </div>
 
-<!-- ===== ตารางครู ===== -->
+<!-- ครู -->
 <div class="footer" id="teacherTable">
   <h3>รายชื่อผู้เข้าเรียน</h3>
   <table>
     <thead>
       <tr>
         <th>ชื่อ</th>
-        <th>สถานะ</th>
         <th>เวลา</th>
       </tr>
     </thead>
@@ -88,54 +87,57 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getDatabase, ref, push, onValue }
 from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
+/* 🔴 Firebase ของคุณ */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "ใส่_API_KEY",
   authDomain: "qr-checkin-f6467.firebaseapp.com",
   databaseURL: "https://qr-checkin-f6467-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "qr-checkin-f6467",
   storageBucket: "qr-checkin-f6467.appspot.com",
-  messagingSenderId: "XXXX",
-  appId: "XXXX"
+  messagingSenderId: "ใส่_MESSAGING_ID",
+  appId: "ใส่_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+/* แยกข้อมูลตามวัน */
 const today = new Date().toISOString().slice(0,10);
 const attendanceRef = ref(db, "attendance/" + today);
 
-/* ===== ตรวจโหมด ===== */
+/* ตรวจโหมด */
 const isStudent = location.hash === "#student";
 
-/* ===== UI ===== */
+/* UI */
 const title = document.getElementById("title");
 const studentSection = document.getElementById("studentSection");
 const teacherTable = document.getElementById("teacherTable");
 const qrSection = document.getElementById("qrSection");
 const startBtn = document.getElementById("startBtn");
 
-let startTime = null;
-
+/* ตั้งค่าโหมด */
 if (isStudent) {
-  // นักเรียน
-  title.innerText = "📱 เช็กชื่อเข้าเรียน";
+  title.innerText = "📱 นักเรียนเช็กชื่อ";
   startBtn.style.display = "none";
   qrSection.style.display = "none";
   teacherTable.style.display = "none";
 } else {
-  // ครู
-  title.innerText = "👨‍🏫 หน้าจอครู (QR + Realtime)";
+  title.innerText = "👨‍🏫 หน้าจอครู";
   studentSection.style.display = "none";
 }
 
-/* ===== ครูเริ่มคาบ ===== */
+/* ครูเริ่มคาบ */
 startBtn.onclick = () => {
-  startTime = Date.now();
   status.innerHTML = "<b class='green'>เริ่มเช็กชื่อแล้ว</b>";
-  createQR();
+  qrcode.innerHTML = "";
+  new QRCode(qrcode, {
+    text: location.origin + location.pathname + "#student",
+    width: 220,
+    height: 220
+  });
 };
 
-/* ===== นักเรียนเช็กชื่อ ===== */
+/* นักเรียนเช็กชื่อ */
 checkBtn.onclick = () => {
   const name = studentName.value.trim();
   if (!name) return alert("กรุณาใส่ชื่อ");
@@ -145,10 +147,11 @@ checkBtn.onclick = () => {
     time: new Date().toLocaleTimeString()
   });
 
+  studentName.value = "";
   alert("เช็กชื่อสำเร็จ");
 };
 
-/* ===== Realtime ขึ้นหน้าครู ===== */
+/* Realtime แสดงหน้าครู */
 onValue(attendanceRef, snap => {
   log.innerHTML = "";
   let count = 0;
@@ -159,23 +162,12 @@ onValue(attendanceRef, snap => {
     log.innerHTML += `
       <tr>
         <td>${d.name}</td>
-        <td>เข้าเรียน</td>
         <td>${d.time}</td>
       </tr>`;
   });
 
   countEl.innerText = "👥 เข้าเรียนแล้ว: " + count + " คน";
 });
-
-/* ===== QR ===== */
-function createQR() {
-  qrcode.innerHTML = "";
-  new QRCode(qrcode, {
-    text: location.origin + location.pathname + "#student",
-    width: 220,
-    height: 220
-  });
-}
 </script>
 
 </body>
