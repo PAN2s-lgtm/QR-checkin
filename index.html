@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>QR Check-in</title>
+<title>QR Check-in (Firebase Realtime)</title>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 
@@ -39,7 +39,7 @@ td, th { border: 1px solid #ccc; padding: 5px 10px; }
 <body>
 
 <div class="header">
-    <h2>ระบบเช็กชื่อด้วย QR Code</h2>
+    <h2>ระบบเช็กชื่อด้วย QR Code (Realtime)</h2>
     <button onclick="startClass()">เริ่มคาบเรียน</button>
     <div id="status"></div>
 </div>
@@ -55,7 +55,7 @@ td, th { border: 1px solid #ccc; padding: 5px 10px; }
 
     <hr>
 
-    <h3>รายชื่อผู้เข้าเรียน</h3>
+    <h3>รายชื่อผู้เข้าเรียน (Realtime)</h3>
     <table>
         <thead>
             <tr>
@@ -68,16 +68,49 @@ td, th { border: 1px solid #ccc; padding: 5px 10px; }
     </table>
 </div>
 
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove } 
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+/* 🔴 แก้เป็น Firebase ของคุณ */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const attendanceRef = ref(db, "attendance");
+
+/* เปิดให้ JS ปกติเรียก */
+window.db = db;
+window.ref = ref;
+window.push = push;
+window.onValue = onValue;
+window.remove = remove;
+window.attendanceRef = attendanceRef;
+</script>
+
 <script>
 let startTime = null;
 
+/* เริ่มคาบ */
 function startClass() {
     startTime = new Date();
     document.getElementById("status").innerHTML =
         "<b class='status-normal'>เริ่มเช็กชื่อแล้ว (5 นาทีแรก = ปกติ)</b>";
     updateQR();
+    clearAttendance();
 }
 
+/* สถานะ */
 function getStatus() {
     if (!startTime) return "ยังไม่เริ่ม";
     const diff = (new Date() - startTime) / 60000;
@@ -86,6 +119,7 @@ function getStatus() {
     return "ปิด";
 }
 
+/* QR */
 function updateQR() {
     const status = getStatus();
     document.getElementById("qrcode").innerHTML = "";
@@ -105,6 +139,7 @@ function updateQR() {
     setTimeout(updateQR, 1000);
 }
 
+/* เช็กชื่อ */
 function checkIn() {
     const name = document.getElementById("studentName").value.trim();
     if (!name) return alert("กรุณาใส่ชื่อ");
@@ -113,37 +148,37 @@ function checkIn() {
     if (status === "ปิด") return alert("หมดเวลาเช็กชื่อ");
 
     const time = new Date().toLocaleTimeString();
-    const data = JSON.parse(localStorage.getItem("checkin") || "[]");
 
-    if (data.find(d => d.name === name)) {
-        alert("เช็กชื่อแล้ว");
-        return;
-    }
+    push(attendanceRef, {
+        name: name,
+        status: status,
+        time: time
+    });
 
-    data.push({ name, status, time });
-    localStorage.setItem("checkin", JSON.stringify(data));
-    render();
+    document.getElementById("studentName").value = "";
 }
 
-function render() {
-    const data = JSON.parse(localStorage.getItem("checkin") || "[]");
+/* ล้างรายชื่อเมื่อเริ่มคาบใหม่ */
+function clearAttendance() {
+    remove(attendanceRef);
+}
+
+/* Realtime แสดงผล */
+onValue(attendanceRef, (snapshot) => {
     const tbody = document.getElementById("log");
     tbody.innerHTML = "";
 
-    data.forEach(d => {
+    snapshot.forEach(child => {
+        const d = child.val();
         tbody.innerHTML += `
         <tr>
             <td>${d.name}</td>
             <td>${d.status}</td>
             <td>${d.time}</td>
         </tr>`;
-        https://console.firebase.google.com/project/qr-checkin-f6467/database/qr-checkin-f6467-default-rtdb/data/~2F
     });
-}
-
-render();
+});
 </script>
 
 </body>
 </html>
-
