@@ -2,12 +2,12 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>QR Check-in Realtime (Thailand Theme)</title>
+<title>QR Check-in Realtime</title>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 
 <style>
-/* ===== พื้นหลังธงชาติไทย ===== */
+/* ===== ธงชาติไทย ===== */
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -24,7 +24,6 @@ body {
   );
 }
 
-/* กล่องเนื้อหาให้ชัด อ่านง่าย */
 .header, .footer, .qr-container {
   background: rgba(255,255,255,0.95);
   margin: 10px;
@@ -39,6 +38,7 @@ body {
   justify-content: center;
   align-items: center;
 }
+
 #qrcode {
   padding: 15px;
   border: 3px solid #1a237e;
@@ -50,7 +50,6 @@ table { margin: auto; border-collapse: collapse; }
 td, th { border: 1px solid #ccc; padding: 5px 10px; }
 
 .green { color: green; }
-.orange { color: orange; }
 .red { color: red; }
 </style>
 </head>
@@ -58,7 +57,7 @@ td, th { border: 1px solid #ccc; padding: 5px 10px; }
 <body>
 
 <div class="header">
-  <h2>🇹🇭 ระบบเช็กชื่อด้วย QR Code (Realtime)</h2>
+  <h2 id="title">ระบบเช็กชื่อด้วย QR Code</h2>
   <button id="startBtn">เริ่มคาบเรียน</button>
   <button id="clearBtn">ล้างข้อมูล</button>
   <div id="status"></div>
@@ -69,12 +68,16 @@ td, th { border: 1px solid #ccc; padding: 5px 10px; }
   <div id="qrcode"></div>
 </div>
 
-<div class="footer">
+<!-- ===== ส่วนของนักเรียน (ซ่อนในโหมดครู) ===== -->
+<div class="footer" id="studentSection">
+  <h3>นักเรียนเช็กชื่อ</h3>
   <input id="studentName" placeholder="ชื่อนักเรียน">
   <button id="checkBtn">เช็กชื่อ</button>
+</div>
 
-  <hr>
-
+<!-- ===== ตารางแสดงผล (ครูเห็นตลอด) ===== -->
+<div class="footer">
+  <h3>รายชื่อผู้เข้าเรียน</h3>
   <table>
     <thead>
       <tr>
@@ -93,7 +96,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getDatabase, ref, push, onValue, remove }
 from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-/* 🔴 ใช้ Firebase ของคุณ */
+/* 🔴 Firebase ของคุณ */
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "qr-checkin-f6467.firebaseapp.com",
@@ -107,59 +110,75 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* แยกข้อมูลตามวัน */
+/* แยกตามวัน */
 const today = new Date().toISOString().slice(0,10);
 const attendanceRef = ref(db, "attendance/" + today);
 
-let startTime = null;
+/* ===== ตรวจโหมด ===== */
+const isStudent = location.search.includes("student");
 
 /* ===== UI ===== */
-const statusEl = document.getElementById("status");
-const logEl = document.getElementById("log");
-const countEl = document.getElementById("count");
+const studentSection = document.getElementById("studentSection");
+const startBtn = document.getElementById("startBtn");
+const clearBtn = document.getElementById("clearBtn");
+const title = document.getElementById("title");
 
-/* เริ่มคาบ */
-document.getElementById("startBtn").onclick = () => {
+if (isStudent) {
+  // โหมดนักเรียน
+  startBtn.style.display = "none";
+  clearBtn.style.display = "none";
+  title.innerText = "📱 นักเรียนเช็กชื่อเข้าเรียน";
+} else {
+  // โหมดครู
+  studentSection.style.display = "none";
+  title.innerText = "👨‍🏫 ครู : แสดง QR และรายชื่อผู้เข้าเรียน";
+}
+
+/* ===== Logic ===== */
+let startTime = null;
+
+startBtn.onclick = () => {
   startTime = new Date();
-  statusEl.innerHTML = "<b class='green'>เริ่มเช็กชื่อแล้ว (0–5 นาที = ปกติ)</b>";
+  status.innerHTML = "<b class='green'>เริ่มเช็กชื่อแล้ว</b>";
   createQR();
 };
 
-/* ล้างข้อมูล */
-document.getElementById("clearBtn").onclick = () => {
+clearBtn.onclick = () => {
   if (confirm("ล้างข้อมูลวันนี้ทั้งหมด?")) {
     remove(attendanceRef);
   }
 };
 
-/* เช็กชื่อ */
-document.getElementById("checkBtn").onclick = () => {
+checkBtn.onclick = () => {
+  if (!isStudent) return;
+
   const name = studentName.value.trim();
   if (!name) return alert("กรุณาใส่ชื่อ");
-  if (!startTime) return alert("ยังไม่เริ่มคาบ");
+  if (!startTime) return alert("รอครูเริ่มคาบ");
 
   const diff = (new Date() - startTime) / 60000;
-  const status = diff <= 5 ? "ปกติ" : diff <= 10 ? "มาสาย" : "ปิด";
-  if (status === "ปิด") return alert("หมดเวลาเช็กชื่อ");
+  const statusText = diff <= 5 ? "ปกติ" : diff <= 10 ? "มาสาย" : "ปิด";
+  if (statusText === "ปิด") return alert("หมดเวลาเช็กชื่อ");
 
   push(attendanceRef, {
     name,
-    status,
+    status: statusText,
     time: new Date().toLocaleTimeString()
   });
 
   studentName.value = "";
+  alert("เช็กชื่อสำเร็จ");
 };
 
-/* Realtime */
+/* ===== Realtime ===== */
 onValue(attendanceRef, snap => {
-  logEl.innerHTML = "";
+  log.innerHTML = "";
   let count = 0;
 
   snap.forEach(c => {
     const d = c.val();
     count++;
-    logEl.innerHTML += `
+    log.innerHTML += `
       <tr>
         <td>${d.name}</td>
         <td>${d.status}</td>
@@ -170,11 +189,11 @@ onValue(attendanceRef, snap => {
   countEl.innerHTML = `👥 เข้าเรียนแล้ว: ${count} คน`;
 });
 
-/* QR */
+/* ===== QR ===== */
 function createQR() {
-  document.getElementById("qrcode").innerHTML = "";
+  qrcode.innerHTML = "";
   new QRCode(qrcode, {
-    text: location.href,
+    text: location.origin + location.pathname + "?student",
     width: 220,
     height: 220
   });
