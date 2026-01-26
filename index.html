@@ -1,102 +1,20 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<title>QR Check-in Realtime</title>
-
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
-
-<style>
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(
-    to bottom,
-    #d50000 0%, #d50000 20%,
-    #ffffff 20%, #ffffff 40%,
-    #1a237e 40%, #1a237e 60%,
-    #ffffff 60%, #ffffff 80%,
-    #d50000 80%, #d50000 100%
-  );
-}
-.header, .footer, .qr-container {
-  background: rgba(255,255,255,0.95);
-  margin: 10px;
-  border-radius: 10px;
-  padding: 10px;
-}
-.header { text-align: center; }
-.qr-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-#qrcode {
-  padding: 15px;
-  border: 3px solid #1a237e;
-  border-radius: 10px;
-  background: #fff;
-}
-table { margin: auto; border-collapse: collapse; }
-td, th { border: 1px solid #ccc; padding: 6px 12px; }
-.green { color: green; }
-</style>
-</head>
-
-<body>
-
-<div class="header">
-  <h2 id="title"></h2>
-  <button id="startBtn">เริ่มคาบเรียน</button>
-  <div id="status"></div>
-  <div id="count"></div>
-</div>
-
-<div class="qr-container" id="qrSection">
-  <div id="qrcode"></div>
-</div>
-
-<!-- นักเรียน -->
-<div class="footer" id="studentSection">
-  <h3>เช็กชื่อเข้าเรียน</h3>
-  <input id="studentName" placeholder="ชื่อนักเรียน">
-  <button id="checkBtn">เช็กชื่อ</button>
-</div>
-
-<!-- ครู -->
-<div class="footer" id="teacherTable">
-  <h3>รายชื่อผู้เข้าเรียน</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>ชื่อ</th>
-        <th>เวลา</th>
-      </tr>
-    </thead>
-    <tbody id="log"></tbody>
-  </table>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getDatabase, ref, push, onValue }
 from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-/* Firebase */
+/* ✅ Firebase CONFIG ของคุณ (ของจริง) */
 const firebaseConfig = {
-  apiKey: "ใส่_API_KEY",
+  apiKey: "AIzaSyB3dg0wdJSu312bnjoRU11gjgkDBGOdzVE",
   authDomain: "qr-checkin-f6467.firebaseapp.com",
   databaseURL: "https://qr-checkin-f6467-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "qr-checkin-f6467",
   storageBucket: "qr-checkin-f6467.appspot.com",
-  messagingSenderId: "ใส่_MESSAGING_ID",
-  appId: "ใส่_APP_ID"
+  messagingSenderId: "507122002102",
+  appId: "1:507122002102:web:468ea88c3f5d2d48ecde17"
 };
 
+/* Initialize */
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -116,7 +34,7 @@ const checkBtn = document.getElementById("checkBtn");
 /* Mode */
 const isStudent = location.hash === "#student";
 
-/* Firebase path */
+/* Firebase path (แยกตามวัน) */
 const today = new Date().toISOString().slice(0,10);
 const attendanceRef = ref(db, "attendance/" + today);
 
@@ -131,7 +49,7 @@ if (isStudent) {
   studentSection.style.display = "none";
 }
 
-/* เริ่มคาบ */
+/* ครูเริ่มคาบ */
 startBtn.onclick = () => {
   statusEl.innerHTML = "<b class='green'>เริ่มคาบเรียนแล้ว</b>";
   qrcodeEl.innerHTML = "";
@@ -156,7 +74,7 @@ checkBtn.onclick = () => {
   alert("เช็กชื่อสำเร็จ");
 };
 
-/* Realtime ครู */
+/* Realtime ขึ้นหน้าครู */
 onValue(attendanceRef, snap => {
   logEl.innerHTML = "";
   let count = 0;
@@ -174,6 +92,3 @@ onValue(attendanceRef, snap => {
   countEl.innerText = "👥 เข้าเรียนแล้ว: " + count + " คน";
 });
 </script>
-
-</body>
-</html>
