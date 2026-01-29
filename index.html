@@ -72,6 +72,14 @@
       color: red;
       margin-top: 20px;
     }
+
+    #endBtn {
+      background-color: #f44336; /* ปรับสีปุ่มให้แตกต่าง */
+    }
+
+    #endBtn:hover {
+      background-color: #d32f2f;
+    }
   </style>
 </head>
 
@@ -80,6 +88,7 @@
     <h2 id="title"></h2>
 
     <button id="startBtn">เริ่มคาบเรียน</button>
+    <button id="endBtn" style="display: none;">หมดคาบเรียน</button>
     <div id="status"></div>
 
     <div id="qrSection">
@@ -120,6 +129,7 @@
     /* DOM */
     const title = document.getElementById("title");
     const startBtn = document.getElementById("startBtn");
+    const endBtn = document.getElementById("endBtn");
     const statusEl = document.getElementById("status");
     const countEl = document.getElementById("count");
     const qrcodeEl = document.getElementById("qrcode");
@@ -139,6 +149,7 @@
     if (isStudent) {
       title.innerText = "📱 นักเรียนเช็กชื่อ";
       startBtn.style.display = "none";
+      endBtn.style.display = "none";
       qrcodeEl.style.display = "none";
     } else {
       title.innerText = "👨‍🏫 หน้าจอครู";
@@ -146,8 +157,9 @@
     }
 
     let countdownTimer; // เก็บตัวจับเวลา
+    let countdownTime = 0; // เก็บเวลานับถอยหลัง
 
-    /* ครูเริ่ม */
+    /* เริ่มคาบเรียน */
     startBtn.onclick = () => {
       statusEl.innerHTML = "<b class='green'>เริ่มคาบเรียนแล้ว</b>";
       qrcodeEl.innerHTML = "";
@@ -157,8 +169,20 @@
         height: 220
       });
 
-      // ตั้งเวลาหมดคาบ (เช่น 30 นาที)
+      // ปรับให้ปุ่มหมดคาบแสดงขึ้น
+      endBtn.style.display = "inline-block";
+
+      // เริ่มตั้งเวลาหมดคาบ (30 นาที)
       startCountdown(30 * 60); // 30 นาที = 1800 วินาที
+    };
+
+    /* ปิดคาบเรียน */
+    endBtn.onclick = () => {
+      clearInterval(countdownTimer); // หยุดนับเวลา
+      countdownEl.innerText = "คาบเรียนสิ้นสุดแล้ว!";
+      checkBtn.disabled = true; // หยุดการเช็กชื่อ
+      endBtn.style.display = "none"; // ซ่อนปุ่มหมดคาบ
+      statusEl.innerHTML = "<b class='green'>คาบเรียนสิ้นสุดแล้ว</b>";
     };
 
     /* นักเรียนเช็กชื่อ */
@@ -189,18 +213,20 @@
 
     /* ฟังก์ชันนับถอยหลัง */
     function startCountdown(seconds) {
-      let remainingTime = seconds;
+      countdownTime = seconds;
 
       countdownTimer = setInterval(() => {
-        if (remainingTime <= 0) {
+        if (countdownTime <= 0) {
           clearInterval(countdownTimer);
           countdownEl.innerText = "คาบเรียนสิ้นสุดแล้ว!";
-          checkBtn.disabled = true; // หยุดให้เช็กชื่อเมื่อหมดเวลา
+          checkBtn.disabled = true; // หยุดการเช็กชื่อ
+          endBtn.style.display = "none"; // ซ่อนปุ่มหมดคาบ
+          statusEl.innerHTML = "<b class='green'>คาบเรียนสิ้นสุดแล้ว</b>";
         } else {
-          const minutes = Math.floor(remainingTime / 60);
-          const secs = remainingTime % 60;
+          const minutes = Math.floor(countdownTime / 60);
+          const secs = countdownTime % 60;
           countdownEl.innerText = `เวลาหมดคาบ: ${minutes} นาที ${secs} วินาที`;
-          remainingTime--;
+          countdownTime--;
         }
       }, 1000); // อัปเดตทุกๆ 1 วินาที
     }
