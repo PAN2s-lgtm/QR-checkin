@@ -66,6 +66,12 @@
     button:hover {
       background-color: #45a049;
     }
+
+    #countdown {
+      font-size: 18px;
+      color: red;
+      margin-top: 20px;
+    }
   </style>
 </head>
 
@@ -86,6 +92,7 @@
     </div>
 
     <h3 id="count"></h3>
+    <div id="countdown"></div>
     <table>
       <tbody id="log"></tbody>
     </table>
@@ -119,6 +126,7 @@
     const logEl = document.getElementById("log");
     const studentName = document.getElementById("studentName");
     const checkBtn = document.getElementById("checkBtn");
+    const countdownEl = document.getElementById("countdown");
 
     /* Mode */
     const isStudent = location.hash === "#student";
@@ -137,6 +145,8 @@
       document.getElementById("studentSection").style.display = "none";
     }
 
+    let countdownTimer; // เก็บตัวจับเวลา
+
     /* ครูเริ่ม */
     startBtn.onclick = () => {
       statusEl.innerHTML = "<b class='green'>เริ่มคาบเรียนแล้ว</b>";
@@ -146,6 +156,9 @@
         width: 220,
         height: 220
       });
+
+      // ตั้งเวลาหมดคาบ (เช่น 30 นาที)
+      startCountdown(30 * 60); // 30 นาที = 1800 วินาที
     };
 
     /* นักเรียนเช็กชื่อ */
@@ -173,6 +186,24 @@
       });
       countEl.innerText = "👥 เข้าเรียนแล้ว: " + count + " คน";
     });
+
+    /* ฟังก์ชันนับถอยหลัง */
+    function startCountdown(seconds) {
+      let remainingTime = seconds;
+
+      countdownTimer = setInterval(() => {
+        if (remainingTime <= 0) {
+          clearInterval(countdownTimer);
+          countdownEl.innerText = "คาบเรียนสิ้นสุดแล้ว!";
+          checkBtn.disabled = true; // หยุดให้เช็กชื่อเมื่อหมดเวลา
+        } else {
+          const minutes = Math.floor(remainingTime / 60);
+          const secs = remainingTime % 60;
+          countdownEl.innerText = `เวลาหมดคาบ: ${minutes} นาที ${secs} วินาที`;
+          remainingTime--;
+        }
+      }, 1000); // อัปเดตทุกๆ 1 วินาที
+    }
   </script>
 </body>
 </html>
